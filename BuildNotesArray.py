@@ -30,10 +30,10 @@ def getNoteIndex(lineIndex,lineLayer,colIndex,direction):
 
 noteRef = {}
 
-xRange = 4
-yRange = 3
-tRange = 2
-dRange = 9
+xRange = 4 #x position of note
+yRange = 3 #y position of note
+tRange = 2 #time of note
+dRange = 9 #direction of note (0-9).
 
 for a in range(20):
     noteRef[a] = None

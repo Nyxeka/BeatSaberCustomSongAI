@@ -20,13 +20,17 @@ def cnn_model_fn(features, labels, mode):
         [-1,1024] ) # batch_size, beatset length
 
     """
-    batch_size is set to -1.
+    batch_size is `set to -1.
 
     this means that it should be computed, dynamically, on the fly, depending on the number of input values in 'features["x"]'
 
     This means that we can use batch_size as a 'hyperparameter' that we can tune as we see fit. We can choose how many images we want to feed it at once with a command.
 
+    beatsets length to be 1024
+
     """
+
+    reshape1 = tf.reshape(input_layer,[32,32])
 
     # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
@@ -36,38 +40,27 @@ def cnn_model_fn(features, labels, mode):
         padding="same",
         activation=tf.nn.relu)
 
-    """
-    the output will be [batch_size, 1024, 64] - same height and width dimensions as the input, but with 32 channels holding the output from each of the filters.
     
-    """
-
     reshape3 = tf.reshape(conv1,[1024,12])
 
     #layer 2 we want 1024x12
 
-    denseLayer = tf.layers.dense(inputs=reshape3,units=1024,activation=tf.nn.relu)
-
-    """
-    inputs: the input layer.
-
-    pool_size specifics the size of the max pooling filter [height,width] ([2,2]). If both dimensions have the same value, you can instead
-    say pool_size = 2.
-
-    the strides argmuent specifics the size of the stride- the subregiona extracted by the filter should be separated by 2 pixels in both height and width dimensions
-    for a 2x2 filter, this means that none of the regions extracted will overlap. also acccepts a tuple [2,2] or [4,6] or [whatever,whatever]
-
-    outputs [batch_size,14,14,32]
-
-    """
+    denseLayer = tf.layers.dense(inputs=reshape3,
+        units=1024,
+        activation=tf.nn.relu)
 
     # Convolutional Layer #2 and Pooling Layer #2
     conv2 = tf.layers.conv1d(
-        inputs=pool1,
+        inputs=denseLayer,
         filters=64,
         kernel_size=[5, 5],
         padding="same",
         activation=tf.nn.relu)
-    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size = [2, 2], strides = 2)
+
+    pool2 = tf.layers.max_pooling2d(
+        inputs=conv2, 
+        pool_size = [2, 2], 
+        strides = 2)
 
     """
     this convolutional layer takes 64 5x5 filters. 64 channels for the 64 filters applied.
@@ -78,47 +71,20 @@ def cnn_model_fn(features, labels, mode):
 
     # Dense Layer
     pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64]) # change the shape of the output of pool2 to a 3,136 wide set of data.
-    dense = tf.layers.dense(inputs=pool2_flat,units=1024,activation=tf.nn.relu) # send the 3136 wide set of data towards a 1024 set of neurons.
-    dropout = tf.layers.dropout(
-        inputs=dense,rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN) # Apply dropouts to improve the accuracy of our model. 40% elements randomly dropped during training.
-        # we only do drop-outs if the model is n training mode. (mode == tf.estimator.ModeKeys.TRAIN) = true or false.
+    denseLayer2 = tf.layers.dense(inputs=pool2_flat,units=1024,activation=tf.nn.relu) # send the 3136 wide set of data towards a 1024 set of neurons.
     
-    #result is [batch_size, 1024]
-    
-    # Logits Layer
-    logits = tf.layers.dense(inputs = dropout, units=10)
+    # output layer
+    outputLayer = tf.layers.dense(inputs=denseLayer2,
+        units=1024,
+        activation=tf.nn.relu)
 
-    # Logits layer provides the final output - connects the 1024 neurons to 10 neurons. outputs [batch_size, 10]
 
-    predictions = {
-        # Generate predictions (for PREDICT and EVAL mode)
-        "classes": tf.argmax(input=logits, axis=1), # input: the tensor where we get the maximum values.
-        #Add 'softmax_tensor' to the graph. It is used for PREDICT and by the 'logging_hook'.
-        "probabilities": tf.nn.softmax(logits,name="softmax_tensor") # this specifies the axis along the tensor in which to find the great value.
-        #we say 'name' specifically so that we can reference it later.
-        # [0,0,0,1,0,0,0,0,0,0] - here it will output 3
-    } # now we basically check whichever one is highest.
-
-    if mode == tf.estimator.ModeKeys.PREDICT:
-        return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
-    
-    # Calculate Loss (for both TRAIN and EVAL modes)
-    loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-    """
-
-    tf.losses.sparse_softmax_cross_entropy(labels,logits,weights,scope,loss_collection,reduction)
-    labels: tensor of shape
-    logits: tensor output predictions
-
-    """
-
-    """
-    We need to figure out how accurate this is - we do this by comapring our predictions to what the label on our example actually is.
-    since our output is going to be something like [[1,0,0,0,0,0,0,0,0,0],etc..], we need to format the labels to compare to this.
-    We will use the tf.one_hot function to perform this conversion.
-    tf.on_hot(indices,depth): indices: the locations of the 1 values in the tensor [10-wide].
-    depth: the number of target classes: the depth here is 10. so, indices is which numerical digit, and depth is where it fits. 
-    """
+    #====================================================
+    #
+    #   after this line is all old stuff from the example
+    #   code, from the TF tutorial.
+    #
+    #====================================================
 
     # Configure the Training Op (for TRAIN modes)
     # Now, we need to optimize our model based on loss. We use a well-known optimization algorithm called 'gradient-descent' TF is so useful!

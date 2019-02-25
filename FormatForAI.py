@@ -127,7 +127,8 @@ def copyFormatSongs(_origSongFolder,_songDataDir):
     
     return statInfo
     
-"""# Now execute the copy
+"""
+# Now execute the copy
 songStats = copyFormatSongs(customSongsFolder,songDataDir)
 
 # Write the stats to the stats file
